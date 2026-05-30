@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Списък с покупки</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c8432a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Покупки">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #faf7f2;
+    --surface: #ffffff;
+    --ink: #1a1410;
+    --ink-light: #7a6f65;
+    --accent: #c8432a;
+    --accent-light: #f5e8e5;
+    --line: #e8e0d5;
+    --green: #2a7a4a;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: env(safe-area-inset-top, 40px) 16px env(safe-area-inset-bottom, 80px);
+    padding-top: max(env(safe-area-inset-top), 40px);
+    padding-bottom: max(env(safe-area-inset-bottom), 80px);
+  }
+
+  .app { width: 100%; max-width: 480px; }
+
+  header { text-align: center; margin-bottom: 36px; }
+
+  .header-tag {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 8vw, 2.8rem);
+    color: var(--ink);
+    line-height: 1.15;
+  }
+
+  .subtitle { margin-top: 6px; font-size: 13px; color: var(--ink-light); font-weight: 300; }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 28px;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 6px 6px 6px 18px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .input-row:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+
+  .input-row input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px; /* 16px prevents iOS zoom */
+    color: var(--ink);
+    font-weight: 400;
+  }
+
+  .input-row input::placeholder { color: #c2b8ae; }
+
+  .add-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, background 0.15s;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .add-btn:hover { background: #a83520; transform: scale(1.06); }
+  .add-btn:active { transform: scale(0.92); }
+
+  .stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding: 0 2px;
+  }
+
+  .stats-count { font-size: 12px; color: var(--ink-light); letter-spacing: 0.05em; }
+  .stats-count strong { color: var(--ink); font-weight: 500; }
+
+  .clear-btn {
+    font-size: 12px;
+    color: var(--ink-light);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .clear-btn:hover { color: var(--accent); background: var(--accent-light); }
+
+  .list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+
+  .item {
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    animation: slideIn 0.28s cubic-bezier(.22,1,.36,1);
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .item:active { transform: scale(0.97); }
+
+  .item::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(200,67,42,0.12), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .item.checking::after { opacity: 1; }
+
+  .checkbox {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.2s, background 0.2s, transform 0.2s;
+  }
+
+  .checkbox svg {
+    opacity: 0;
+    transform: scale(0);
+    transition: opacity 0.18s, transform 0.18s cubic-bezier(.34,1.56,.64,1);
+  }
+
+  .item.checked {
+    animation: checkOut 0.4s cubic-bezier(.22,1,.36,1) forwards;
+  }
+
+  @keyframes checkOut {
+    0%   { opacity: 1; transform: scale(1); max-height: 80px; }
+    30%  { transform: scale(1.03); }
+    70%  { opacity: 0.4; transform: scale(0.95) translateX(12px); }
+    100% { opacity: 0; transform: scale(0.88) translateX(24px); max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; border-width: 0; }
+  }
+
+  .item.checked .checkbox { background: var(--green); border-color: var(--green); transform: scale(1.15); }
+  .item.checked .checkbox svg { opacity: 1; transform: scale(1); }
+  .item.checked .item-text { text-decoration: line-through; color: var(--ink-light); }
+
+  .item-text {
+    font-size: 15px;
+    color: var(--ink);
+    font-weight: 400;
+    flex: 1;
+    transition: color 0.2s;
+    line-height: 1.4;
+  }
+
+  .empty {
+    text-align: center;
+    padding: 56px 20px;
+    color: var(--ink-light);
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .empty-icon { font-size: 52px; margin-bottom: 14px; display: block; }
+
+  .empty-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+
+  .empty-sub { font-size: 13px; font-weight: 300; }
+
+  .input-hint {
+    font-size: 11px;
+    color: var(--ink-light);
+    text-align: center;
+    margin-top: -18px;
+    margin-bottom: 20px;
+    letter-spacing: 0.03em;
+  }
+
+  /* Install banner */
+  #installBanner {
+    display: none;
+    position: fixed;
+    bottom: max(env(safe-area-inset-bottom), 16px);
+    left: 16px; right: 16px;
+    background: var(--ink);
+    color: #fff;
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 13px;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    z-index: 100;
+    animation: slideUp 0.3s cubic-bezier(.22,1,.36,1);
+  }
+
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  #installBanner span { flex: 1; line-height: 1.4; }
+
+  #installBtn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  #dismissBtn {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <span class="header-tag">🛒 моят</span>
+    <h1>Списък с<br>покупки</h1>
+    <p class="subtitle">Отмети продукта, когато го купиш</p>
+  </header>
+
+  <div class="input-row">
+    <input type="text" id="itemInput" placeholder="Добави продукт…" maxlength="80" autocomplete="off" enterkeyhint="done">
+    <button class="add-btn" id="addBtn" title="Добави">+</button>
+  </div>
+  <p class="input-hint">Натисни Enter или „+" за да добавиш</p>
+
+  <div class="stats" id="stats" style="display:none">
+    <span class="stats-count"><strong id="countNum">0</strong> продукта</span>
+    <button class="clear-btn" id="clearBtn">Изчисти всичко</button>
+  </div>
+
+  <ul class="list" id="list"></ul>
+
+  <div class="empty" id="empty">
+    <span class="empty-icon">🥦</span>
+    <p class="empty-title">Списъкът е празен</p>
+    <p class="empty-sub">Добави продукти, които трябва да купиш</p>
+  </div>
+</div>
+
+<!-- Install prompt (Android Chrome) -->
+<div id="installBanner">
+  <span>Добави приложението на началния екран за бърз достъп</span>
+  <button id="installBtn">Инсталирай</button>
+  <button id="dismissBtn">✕</button>
+</div>
+
+<script>
+  const input    = document.getElementById('itemInput');
+  const addBtn   = document.getElementById('addBtn');
+  const list     = document.getElementById('list');
+  const empty    = document.getElementById('empty');
+  const stats    = document.getElementById('stats');
+  const countNum = document.getElementById('countNum');
+  const clearBtn = document.getElementById('clearBtn');
+
+  let items = JSON.parse(localStorage.getItem('shopItems') || '[]');
+
+  function save() { localStorage.setItem('shopItems', JSON.stringify(items)); }
+
+  function updateUI() {
+    const total = items.length;
+    countNum.textContent = total;
+    stats.style.display = total ? 'flex' : 'none';
+    empty.style.display  = total ? 'none'  : 'block';
+  }
+
+  function renderItem(item) {
+    const li = document.createElement('li');
+    li.className = 'item';
+    li.dataset.id = item.id;
+    li.innerHTML = `
+      <div class="checkbox">
+        <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+          <path d="M1 5l3.5 3.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="item-text">${escHtml(item.text)}</span>
+    `;
+    li.addEventListener('click', () => checkItem(li, item.id));
+    list.appendChild(li);
+  }
+
+  function checkItem(li, id) {
+    if (li.dataset.animating) return;
+    li.dataset.animating = '1';
+    li.classList.add('checking');
+    setTimeout(() => {
+      li.classList.remove('checking');
+      li.classList.add('checked');
+      li.addEventListener('animationend', () => {
+        li.remove();
+        items = items.filter(i => i.id !== id);
+        save(); updateUI();
+      }, { once: true });
+    }, 120);
+  }
+
+  function addItem() {
+    const text = input.value.trim();
+    if (!text) { input.focus(); shake(input.closest('.input-row')); return; }
+    const item = { id: Date.now(), text };
+    items.push(item); save(); renderItem(item); updateUI();
+    input.value = ''; input.focus();
+  }
+
+  function shake(el) {
+    el.style.animation = 'none'; el.offsetHeight;
+    el.style.animation = 'shakeX 0.3s ease';
+    setTimeout(() => el.style.animation = '', 350);
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  addBtn.addEventListener('click', addItem);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } });
+
+  clearBtn.addEventListener('click', () => {
+    if (!confirm('Изчисти целия списък?')) return;
+    items = []; save(); list.innerHTML = ''; updateUI();
+  });
+
+  // Shake animation
+  const st = document.createElement('style');
+  st.textContent = '@keyframes shakeX{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}';
+  document.head.appendChild(st);
+
+  // Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // PWA Install prompt (Android)
+  let deferredPrompt;
+  const banner = document.getElementById('installBanner');
+  const installBtn = document.getElementById('installBtn');
+  const dismissBtn = document.getElementById('dismissBtn');
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    banner.style.display = 'flex';
+  });
+
+  installBtn.addEventListener('click', async () => {
+    banner.style.display = 'none';
+    if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
+  });
+
+  dismissBtn.addEventListener('click', () => { banner.style.display = 'none'; });
+
+  items.forEach(renderItem);
+  updateUI();
+</script>
+</body>
+</html>
+{
+  "name": "Списък с покупки",
+  "short_name": "Покупки",
+  "description": "Личен списък с покупки",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf7f2",
+  "theme_color": "#c8432a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }const CACHE = 'shopping-v1';
+const ASSETS = ['/', '/index.html', '/manifest.json'];
+
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ));
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('/index.html')))
+  );
+});
+
+  ]
+}
