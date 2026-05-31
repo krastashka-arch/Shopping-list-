@@ -2,7 +2,7 @@
   "name": "Списък с покупки",
   "short_name": "Покупки",
   "description": "Личен списък с покупки",
-  "start_url": "/",
+  "start_url": "/Shopping-list-/",
   "display": "standalone",
   "background_color": "#faf7f2",
   "theme_color": "#c8432a",
